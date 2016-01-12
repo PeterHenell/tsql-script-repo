@@ -1,3 +1,5 @@
+SET NOEXEC OFF;
+
 WITH XMLNAMESPACES 
    (DEFAULT 'http://schemas.microsoft.com/sqlserver/2004/07/showplan')    
 
@@ -42,19 +44,22 @@ SELECT
 
     stmt.value('(@CardinalityEstimationModelVersion)[1]', 'varchar(100)') AS CE_Version,
 
-    --seekPredicates.value('(./SeekPredicateNew/SeekKeys/Prefix/@ScanType)[1]', 'varchar(max)') AS seek_type,
-    --scanPredicates.value('(./IndexScan/Object/@Schema)[1]', 'varchar(max)') AS op_Schema,
-	stmt.value('(@StatementText)[1]', 'varchar(max)') AS SQL_Text, 
+	--batch.stmt.query('.') AS SQL_Text, 
+    stmt.value('(@StatementText)[1]', 'varchar(max)') AS SQL_Text, 
+    stmt.query(' 
+            for $simple in /ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple 
+            return string($simple/@StatementText) 
+            ').value('.', 'varchar(max)') AS [sql_all_txt] ,
 	usecounts as [Use Count], 
 	plan_handle, 
 	query_plan
 FROM handles
 CROSS APPLY query_plan.nodes('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple') AS batch(stmt) 
---CROSS APPLY stmt.nodes('.//IndexScan/Object[@Index=sql:variable("@IndexName")]') AS idx(obj) 
 OUTER APPLY stmt.nodes('.//RelOp') as logicalOps(logicalOP)
---OUTER APPLY logicalOP.nodes('.//SeekPredicates') as seekPred(seekPredicates)
---OUTER APPLY logicalOP.nodes('.//Predicate') as scanPred(scanPredicates)
 WHERE  
-    stmt.value('declare namespace p="http://schemas.microsoft.com/sqlserver/2004/07/showplan";
-max(//p:RelOp/@Parallel)', 'float') > 0
+    stmt.query('.').exist('//RelOp[@PhysicalOp="Parallelism"]') = 1 
 OPTION(MAXDOP 1, RECOMPILE);
+
+
+SET NOEXEC ON   
+

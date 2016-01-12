@@ -60,6 +60,10 @@ SELECT
     --seekPredicates.value('(./SeekPredicateNew/SeekKeys/Prefix/@ScanType)[1]', 'varchar(max)') AS seek_type,
     --scanPredicates.value('(./IndexScan/Object/@Schema)[1]', 'varchar(max)') AS op_Schema,
 	stmt.value('(@StatementText)[1]', 'varchar(max)') AS SQL_Text, 
+    stmt.query(' 
+            for $simple in /ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple 
+            return string($simple/@StatementText) 
+            ').value('.', 'varchar(max)') AS [sql_all_txt] ,
 	usecounts as [Use Count], 
 	plan_handle, 
 	query_plan

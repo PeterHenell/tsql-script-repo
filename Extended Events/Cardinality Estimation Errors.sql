@@ -10,8 +10,9 @@ SET NOEXEC ON
        )
 
     ADD TARGET package0.ring_buffer
-        (SET max_memory= 128000)
-	    WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 10 SECONDS)
+        (SET MAX_MEMORY = 128000)
+	    WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 10 SECONDS,
+              MEMORY_PARTITION_MODE=NONE, TRACK_CAUSALITY=OFF, STARTUP_STATE=OFF);
     GO
 
     -- START EVENT
@@ -28,7 +29,7 @@ SET NOEXEC OFF;
 					FROM sys.dm_xe_session_targets st JOIN 
 						sys.dm_xe_sessions s ON s.address = st.event_session_address
 					WHERE st.target_name = 'ring_buffer' AND name = 'Cardinality_SOUP';
-    
+    IF @xml IS NULL BEGIN RAISERROR('Did you forget to create/start the trace? There was no trace info in the ring buffer', 1, 1) WITH NOWAIT RETURN END;
 
 	SELECT
 		n.query('event[1]/action[@name="sql_text"][1]').value('action[1]/value[1]', 'nvarchar(max)') AS  [data.sql_text],

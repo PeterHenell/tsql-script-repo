@@ -1,18 +1,3 @@
-
-SET NOEXEC Off
--- http://sqlskills.com/blogs/jonathan/post/Finding-what-queries-in-the-plan-cache-use-a-specific-index.aspx
-
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
-DECLARE @IndexName AS NVARCHAR(128) = 'PK_FactContract';
-
--- Make sure the name passed is appropriately quoted 
-IF (LEFT(@IndexName, 1) <> '[' AND RIGHT(@IndexName, 1) <> ']') SET @IndexName = QUOTENAME(@IndexName); 
---Handle the case where the left or right was quoted manually but not the opposite side 
-IF LEFT(@IndexName, 1) <> '[' SET @IndexName = '['+@IndexName; 
-IF RIGHT(@IndexName, 1) <> ']' SET @IndexName = @IndexName + ']';
-
--- Dig into the plan cache and find all plans using this index 
 WITH XMLNAMESPACES 
    (DEFAULT 'http://schemas.microsoft.com/sqlserver/2004/07/showplan')    
 
@@ -65,16 +50,11 @@ SELECT
 	query_plan
 FROM handles
 CROSS APPLY query_plan.nodes('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple') AS batch(stmt) 
-CROSS APPLY stmt.nodes('.//IndexScan/Object[@Index=sql:variable("@IndexName")]') AS idx(obj) 
+--CROSS APPLY stmt.nodes('.//IndexScan/Object[@Index=sql:variable("@IndexName")]') AS idx(obj) 
 OUTER APPLY stmt.nodes('.//RelOp') as logicalOps(logicalOP)
 --OUTER APPLY logicalOP.nodes('.//SeekPredicates') as seekPred(seekPredicates)
 --OUTER APPLY logicalOP.nodes('.//Predicate') as scanPred(scanPredicates)
+WHERE  
+    stmt.value('declare namespace p="http://schemas.microsoft.com/sqlserver/2004/07/showplan";
+max(//p:RelOp/@Parallel)', 'float') > 0
 OPTION(MAXDOP 1, RECOMPILE);
-
-
-
-SET NOEXEC ON   
-
-SELECT * FROM sys.dm_exec_cached_plans 
-WHERE plan_handle = '0x05000800C6BBEF2640613FF1020000000000000000000000'
-

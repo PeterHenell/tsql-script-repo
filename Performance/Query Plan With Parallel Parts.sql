@@ -52,10 +52,54 @@ SELECT
             ').value('.', 'varchar(max)') AS [sql_all_txt] ,
 	usecounts as [Use Count], 
 	plan_handle, 
-	query_plan
+	query_plan,
+    qstat.*
 FROM handles
 CROSS APPLY query_plan.nodes('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple') AS batch(stmt) 
 OUTER APPLY stmt.nodes('.//RelOp') as logicalOps(logicalOP)
+OUTER APPLY (
+     SELECT TOP 1
+           --st.sql_handle ,
+           --st.statement_start_offset ,
+           --st.statement_end_offset ,
+           --st.plan_generation_num ,
+           --st.creation_time ,
+           --st.last_execution_time ,
+           st.execution_count ,
+           st.total_worker_time ,
+           --st.last_worker_time ,
+           st.min_worker_time ,
+           st.max_worker_time ,
+           st.total_physical_reads ,
+           --st.last_physical_reads ,
+           st.min_physical_reads ,
+           st.max_physical_reads ,
+           st.total_logical_writes ,
+           --st.last_logical_writes ,
+           st.min_logical_writes ,
+           st.max_logical_writes ,
+           st.total_logical_reads ,
+           --st.last_logical_reads ,
+           st.min_logical_reads ,
+           st.max_logical_reads ,
+           --st.total_clr_time ,
+           --st.last_clr_time ,
+           --st.min_clr_time ,
+           --st.max_clr_time ,
+           st.total_elapsed_time ,
+           --st.last_elapsed_time ,
+           st.min_elapsed_time ,
+           st.max_elapsed_time ,
+           --st.query_hash ,
+           --st.query_plan_hash ,
+           st.total_rows ,
+           st.last_rows ,
+           st.min_rows ,
+           st.max_rows ,
+           --st.statement_sql_handle ,
+           st.statement_context_id 
+     FROM sys.dm_exec_query_stats st WHERE st.plan_handle = handles.plan_handle 
+    ) qstat
 WHERE  
     stmt.query('.').exist('//RelOp[@PhysicalOp="Parallelism"]') = 1 
 OPTION(MAXDOP 1, RECOMPILE);

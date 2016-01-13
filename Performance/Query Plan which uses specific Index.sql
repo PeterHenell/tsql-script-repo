@@ -1,4 +1,3 @@
-
 SET NOEXEC Off
 -- http://sqlskills.com/blogs/jonathan/post/Finding-what-queries-in-the-plan-cache-use-a-specific-index.aspx
 
@@ -26,6 +25,7 @@ WITH XMLNAMESPACES
 SELECT 
     DENSE_RANK() OVER (ORDER BY handles.plan_handle) Q_RN,
     ROW_NUMBER() OVER (PARTITION BY handles.plan_handle ORDER BY (select NULL)) Op_RN,
+    
     logicalOP.value('(@PhysicalOp)[1]', 'varchar(100)') AS physicalOp,
     logicalOP.value('(@EstimateRows)[1]', 'varchar(100)') AS EstimateRows,
 
@@ -60,17 +60,63 @@ SELECT
     --seekPredicates.value('(./SeekPredicateNew/SeekKeys/Prefix/@ScanType)[1]', 'varchar(max)') AS seek_type,
     --scanPredicates.value('(./IndexScan/Object/@Schema)[1]', 'varchar(max)') AS op_Schema,
 	stmt.value('(@StatementText)[1]', 'varchar(max)') AS SQL_Text, 
+    stmt.value('(@StatementId)[1]', 'int') AS StatementId,
     stmt.query(' 
             for $simple in /ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple 
             return string($simple/@StatementText) 
             ').value('.', 'varchar(max)') AS [sql_all_txt] ,
 	usecounts as [Use Count], 
 	plan_handle, 
-	query_plan
+	query_plan,
+    qstat.*
 FROM handles
 CROSS APPLY query_plan.nodes('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple') AS batch(stmt) 
 CROSS APPLY stmt.nodes('.//IndexScan/Object[@Index=sql:variable("@IndexName")]') AS idx(obj) 
 OUTER APPLY stmt.nodes('.//RelOp') as logicalOps(logicalOP)
+OUTER APPLY (select stmt.value('(@StatementId)[1]', 'int')) AS id(StatementId)
+OUTER APPLY (
+     SELECT TOP 1
+           --st.sql_handle ,
+           --st.statement_start_offset ,
+           --st.statement_end_offset ,
+           --st.plan_generation_num ,
+           --st.creation_time ,
+           --st.last_execution_time ,
+           st.execution_count ,
+           st.total_worker_time ,
+           --st.last_worker_time ,
+           st.min_worker_time ,
+           st.max_worker_time ,
+           st.total_physical_reads ,
+           --st.last_physical_reads ,
+           st.min_physical_reads ,
+           st.max_physical_reads ,
+           st.total_logical_writes ,
+           --st.last_logical_writes ,
+           st.min_logical_writes ,
+           st.max_logical_writes ,
+           st.total_logical_reads ,
+           --st.last_logical_reads ,
+           st.min_logical_reads ,
+           st.max_logical_reads ,
+           --st.total_clr_time ,
+           --st.last_clr_time ,
+           --st.min_clr_time ,
+           --st.max_clr_time ,
+           st.total_elapsed_time ,
+           --st.last_elapsed_time ,
+           st.min_elapsed_time ,
+           st.max_elapsed_time ,
+           --st.query_hash ,
+           --st.query_plan_hash ,
+           st.total_rows ,
+           st.last_rows ,
+           st.min_rows ,
+           st.max_rows ,
+           --st.statement_sql_handle ,
+           st.statement_context_id 
+     FROM sys.dm_exec_query_stats st WHERE st.plan_handle = handles.plan_handle 
+    ) qstat
 --OUTER APPLY logicalOP.nodes('.//SeekPredicates') as seekPred(seekPredicates)
 --OUTER APPLY logicalOP.nodes('.//Predicate') as scanPred(scanPredicates)
 OPTION(MAXDOP 1, RECOMPILE);

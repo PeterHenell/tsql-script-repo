@@ -3,7 +3,7 @@ SET NOEXEC Off
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-DECLARE @IndexName AS NVARCHAR(128) = 'PK_FactContract';
+DECLARE @IndexName AS NVARCHAR(128) = 'PK_DimContractODVInfo';
 
 -- Make sure the name passed is appropriately quoted 
 IF (LEFT(@IndexName, 1) <> '[' AND RIGHT(@IndexName, 1) <> ']') SET @IndexName = QUOTENAME(@IndexName); 
@@ -57,14 +57,18 @@ SELECT
 
     stmt.value('(@CardinalityEstimationModelVersion)[1]', 'varchar(100)') AS CE_Version,
 
-    --seekPredicates.value('(./SeekPredicateNew/SeekKeys/Prefix/@ScanType)[1]', 'varchar(max)') AS seek_type,
-    --scanPredicates.value('(./IndexScan/Object/@Schema)[1]', 'varchar(max)') AS op_Schema,
 	stmt.value('(@StatementText)[1]', 'varchar(max)') AS SQL_Text, 
     stmt.value('(@StatementId)[1]', 'int') AS StatementId,
     stmt.query(' 
             for $simple in /ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple 
             return string($simple/@StatementText) 
             ').value('.', 'varchar(max)') AS [sql_all_txt] ,
+    stmt.query(' 
+            for $colref in //ColumnReference
+            where  string-length($colref/@ParameterCompiledValue) > 0
+            return concat(string($colref/@Column) , "=",
+                          string($colref/@ParameterCompiledValue))
+            ').value('.', 'varchar(max)') AS [compiled_param_vals] ,
 	usecounts as [Use Count], 
 	plan_handle, 
 	query_plan,

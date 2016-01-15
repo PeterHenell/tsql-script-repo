@@ -4,31 +4,41 @@
 -- total_worker_time = Total time On CPU. If 2 cores are being used then time is including time spent on both (x2).
 -- total_elapsed_time = time spent running the query.
 SELECT TOP (20)
-    [Total CPU] = total_worker_time,
-	[Total Elapsed Time] = total_elapsed_time,
+    [Total CPU Seconds] = total_worker_time / 1000000.0,
+	[Total Elapsed Time Seconds] = total_elapsed_time / 1000000.0,
 	[Execution Count] = execution_count,
     [Avg Cores Per Execution] = avg_cores_per_execution,
-    [Average CPU in microseconds] = cast(total_worker_time / (execution_count + 0.0) as money),
     [Average CPU in Seconds] = cast(total_worker_time / (execution_count + 0.0) as money) / 1000000,
-    [Avg Elapsed More Than Worked Seconds] = worker_vs_elapsed / 1000000, 
     [Avg Elapsed Seconds] = (total_elapsed_time / execution_count * 1.0 ) / 1000000,
+    [Avg Worked More Than Elapsed Seconds] = worker_vs_elapsed / 1000000, 
     [DB Name] = DB_NAME(ST.dbid),
     [Object Name] = OBJECT_NAME(ST.objectid, ST.dbid),
-    [Query Text] = (SELECT [processing-instruction(q)] = CASE 
-            WHEN [sql_handle] IS NULL THEN ' '
-            ELSE (SUBSTRING(ST.TEXT,(QS.statement_start_offset + 2) / 2,
-                (CASE 
-                        WHEN QS.statement_end_offset = -1 THEN LEN(CONVERT(NVARCHAR(MAX),ST.text)) * 2
-                        ELSE QS.statement_end_offset
-                        END - QS.statement_start_offset) / 2))
-            END
-			FOR XML PATH(''), type),
+    [Query Text] = raw_sql,
+    [Statement Text] = statement_text,
+   -- [Query Text] = (SELECT [processing-instruction(q)] = CASE 
+   --         WHEN [sql_handle] IS NULL THEN ' '
+   --         ELSE (SUBSTRING(ST.TEXT,(QS.statement_start_offset + 2) / 2,
+   --             (CASE 
+   --                     WHEN QS.statement_end_offset = -1 THEN LEN(CONVERT(NVARCHAR(MAX),ST.text)) * 2
+   --                     ELSE QS.statement_end_offset
+   --                     END - QS.statement_start_offset) / 2))
+   --         END
+			--FOR XML PATH(''), type),
     [Query Plan] = qp.query_plan
 FROM sys.dm_exec_query_stats QS
 CROSS APPLY sys.dm_exec_sql_text([sql_handle]) ST
 CROSS APPLY sys.dm_exec_query_plan ([plan_handle]) QP
 CROSS APPLY (SELECT ( ( total_worker_time - total_elapsed_time ) / execution_count ) * 1.0) diff(worker_vs_elapsed)
 CROSS APPLY (SELECT ( ( total_worker_time / total_elapsed_time ) ) ) avgs(avg_cores_per_execution)
+OUTER APPLY (SELECT text,
+                                SUBSTRING(text, statement_start_offset/2 + 1,
+                                                (CASE WHEN statement_end_offset = -1
+                                                        THEN LEN(CONVERT(nvarchar(MAX),text)) * 2
+                                                      ELSE statement_end_offset
+                                                 END - statement_start_offset)/2)
+                         FROM sys.dm_exec_sql_text(sql_handle)
+                        
+                ) AS query(raw_sql, statement_text)
 WHERE total_elapsed_time < total_worker_time
 	AND worker_vs_elapsed > 1000 -- average difference is more than a millisecond
 ORDER BY total_worker_time DESC

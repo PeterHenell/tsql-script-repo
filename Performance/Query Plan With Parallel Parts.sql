@@ -95,9 +95,9 @@ OUTER APPLY (
            st.total_rows ,
            st.last_rows ,
            st.min_rows ,
-           st.max_rows ,
+           st.max_rows --,
            --st.statement_sql_handle ,
-           st.statement_context_id 
+           --st.statement_context_id 
      FROM sys.dm_exec_query_stats st WHERE st.plan_handle = handles.plan_handle 
     ) qstat
 WHERE  

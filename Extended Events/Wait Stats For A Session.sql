@@ -1,31 +1,32 @@
-SET NOEXEC on
+SET NOEXEC ON
 
     CREATE EVENT SESSION MonitorWaits ON SERVER
-    ADD EVENT sqlos.wait_info
-        (
-         ACTION ( sqlserver.database_name,
-                  sqlserver.client_hostname,
-                  sqlserver.client_app_name,
-                  sqlserver.plan_handle,
-                  sqlserver.sql_text,
-			      sqlserver.session_id,
-                  sqlserver.request_id )
-        WHERE sqlserver.session_id = 54 /* session_id of connection to monitor */)
+        ADD EVENT sqlos.wait_info
+            (
+             ACTION ( sqlserver.database_name,
+                      sqlserver.client_hostname,
+                      sqlserver.client_app_name,
+                      sqlserver.plan_handle,
+                      sqlserver.sql_text,
+	            sqlserver.session_id,
+                      sqlserver.request_id )
+             WHERE sqlserver.session_id = 54 /* session_id of connection to monitor */)
 
-     --ADD TARGET package0.ring_buffer
-     --   (SET MAX_MEMORY = 128000)
-     
-     ADD TARGET package0.histogram
-        (SET slots = 128, filtering_event_name = 'sqlos.wait_info', source_type = 0, source = 'wait_type')
-	 
-     WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 1 SECONDS,
+        --ADD TARGET package0.ring_buffer
+        --   (SET MAX_MEMORY = 128000)
+            
+        ADD TARGET package0.histogram
+               (SET slots = 128, filtering_event_name = 'sqlos.wait_info', source_type = 0, source = 'wait_type')
+	        
+        WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 1 SECONDS,
               MEMORY_PARTITION_MODE=NONE, TRACK_CAUSALITY=OFF, STARTUP_STATE=OFF);
-
+            
     ALTER EVENT SESSION MonitorWaits ON SERVER STATE = START;
 
-    ALTER EVENT SESSION MonitorWaits ON SERVER DROP EVENT sqlos.wait_info;
+    ALTER EVENT SESSION MonitorWaits ON SERVER DROP EVENT sqlos.wait_info; -- use this to stop the collection while also keeping the data in the buffer.
     ALTER EVENT SESSION MonitorWaits ON SERVER ADD EVENT sqlos.wait_info (WHERE sqlserver.session_id = 54);
 
+    -- Stopping the session will clear the ring_buffer.
     ALTER EVENT SESSION MonitorWaits ON SERVER STATE = STOP;
     DROP EVENT SESSION MonitorWaits ON SERVER;
     GO
@@ -64,7 +65,7 @@ SELECT xei.wait_type,
     COUNT(xei.wait_type) AS [Waited #], 
     SUM(xei.wait_type_duration_ms) AS [Total Wait Time (ms)], 
     SUM(xei.wait_type_signal_duration_ms) AS [Total Signal Time (ms)],
-    SUM (xei.wait_type_duration_ms) - SUM (xei.wait_type_signal_duration_ms) AS [Total Resource Wait Time (ms)]
+    SUM(xei.wait_type_duration_ms) - SUM (xei.wait_type_signal_duration_ms) AS [Total Resource Wait Time (ms)]
 FROM wait_info xei
 GROUP BY xei.wait_type
 ORDER BY SUM(xei.wait_type_duration_ms) DESC;

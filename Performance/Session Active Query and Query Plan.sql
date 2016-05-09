@@ -7,6 +7,11 @@ SELECT
             END - statement_start_offset)/2)
      FROM sys.dm_exec_sql_text(sql_handle)) AS query_text
          , qplan.query_plan
+         , reads
+         , open_resultset_count
+         , total_elapsed_time
+         , cpu_time
+         , nest_level
 FROM sys.dm_exec_requests
 CROSS APPLY sys.dm_exec_query_plan(plan_handle)  qplan
 --WHERE session_id = 103 

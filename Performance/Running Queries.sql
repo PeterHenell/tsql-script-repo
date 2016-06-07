@@ -23,4 +23,4 @@ CROSS APPLY ( (SELECT SUBSTRING(text, statement_start_offset/2 + 1,
                 ELSE statement_end_offset
             END - statement_start_offset)/2)
      FROM sys.dm_exec_sql_text(sql_handle))) AS query_text(text)
-WHERE session_id > 50
+WHERE session_id > 50 AND session_id <> @@spid

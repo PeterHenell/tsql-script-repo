@@ -1,5 +1,7 @@
-DECLARE @referencing_entity AS sysname;
-SET @referencing_entity = N'fillCountry';
+DECLARE @referencing_entity sysname,
+        @referencing_schema sysname;
+SET @referencing_entity = N'fillCounterpart';
+SET @referencing_schema = N'ETL';
 
 WITH ObjectDepends(entity_name,referenced_schema, referenced_entity, referenced_id,referencing_id,referenced_database_name,referenced_schema_name,is_ambiguous,is_caller_dependent, referenced_class_desc, level)
 AS
@@ -24,6 +26,7 @@ AS
     ,0 AS level 
     FROM sys.sql_expression_dependencies AS sed 
     WHERE OBJECT_NAME(referencing_id) = @referencing_entity 
+          AND OBJECT_SCHEMA_NAME(referencing_id) = @referencing_schema
     
     UNION ALL
     
@@ -49,6 +52,23 @@ AS
     JOIN sys.sql_expression_dependencies AS sed ON sed.referencing_id = o.referenced_id
 )
 
-SELECT entity_name AS referencing_entity, referenced_entity, referenced_class_desc, level, referencing_id, referenced_id, referenced_database_name,referenced_schema_name, is_ambiguous, is_caller_dependent
+SELECT entity_name AS referencing_entity, referenced_entity, referenced_class_desc, level, referencing_id, 
+       referenced_id, COALESCE(referenced_database_name, DB_NAME()), referenced_schema_name
 FROM ObjectDepends
+WHERE referenced_schema_name IS NOT NULL
 ORDER BY level;
+
+
+
+SELECT name ,
+       object_id ,
+       principal_id ,
+       schema_id ,
+       parent_object_id ,
+       type ,
+       type_desc ,
+       create_date ,
+       modify_date ,
+       is_ms_shipped ,
+       is_published ,
+       is_schema_published FROM sys.objects

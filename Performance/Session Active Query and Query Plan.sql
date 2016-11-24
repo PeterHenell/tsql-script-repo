@@ -1,4 +1,5 @@
 SELECT
+    req.session_id,
     statement_start_offset as stmt_start_offset,
     (SELECT SUBSTRING(text, statement_start_offset/2 + 1,
         (CASE WHEN statement_end_offset = -1
@@ -12,7 +13,11 @@ SELECT
          , total_elapsed_time
          , cpu_time
          , nest_level
-FROM sys.dm_exec_requests
+         , trans.open_transaction_count
+FROM sys.dm_exec_requests req
 CROSS APPLY sys.dm_exec_query_plan(plan_handle)  qplan
+LEFT outer JOIN sys.dm_tran_session_transactions trans
+ON trans.session_id = req.session_id
+
 --WHERE session_id = 103 
 

@@ -13,8 +13,10 @@ SET NOEXEC ON
 			        sqlserver.query_hash,
 			        sqlserver.session_id,
                     sqlserver.request_id ) 
-       )
+     --   WHERE duration > 1000 AND session_id = 65
+    )
 
+	   
     ADD TARGET package0.ring_buffer
         (SET MAX_MEMORY = 128000)
 	    WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 10 SECONDS,

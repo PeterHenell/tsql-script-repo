@@ -31,6 +31,9 @@
   -- Now, if do all this too long after crash recovery runs, the log may have overwritten 
   -- itself and so you won’t be able to get the info you need, but if you’re taking log backups, you could restore a copy of the 
   -- database to the point just after crash recovery has finished, and then do the investigation.
+
+-- Source and full blog.
+-- http://www.sqlskills.com/blogs/paul/code-to-show-rolled-back-transactions-after-a-crash/
   
   
 USE [master];

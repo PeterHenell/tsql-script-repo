@@ -23,5 +23,6 @@ LEFT outer JOIN sys.dm_tran_session_transactions trans
 CROSS  APPLY sys.dm_exec_text_query_plan(plan_handle,
                                             req.statement_start_offset,
                                             req.statement_end_offset) qp
---WHERE session_id = 103 
+WHERE req.session_id <> @@SPID -- and req.session_id = 56
+
 

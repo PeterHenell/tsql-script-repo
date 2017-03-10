@@ -1,4 +1,4 @@
-	declare @SessionName sysname = 'system_health';
+	declare @SessionName sysname = 'LockEscalations';
 
 	SET NOCOUNT ON;
 	DECLARE @SQL NVARCHAR(MAX);
@@ -24,22 +24,22 @@ UNION ALL
         XETypeName = o.name,
         SQLTypeName = CASE 
                             WHEN TYPE_NAME IN ('int8', 'int16', 'int32', 'uint8', 
-                                    'uint16', 'uint32', 'float32') 
+                                    'uint16', 'float32') 
                                 THEN 'int'
-                            WHEN TYPE_NAME IN ('int64', 'uint64', 'float64')
+                            WHEN TYPE_NAME IN ('int64', 'float64', 'uint32')
                                 THEN 'bigint'
                             WHEN TYPE_NAME = 'boolean'
                                 THEN 'nvarchar(10)' --true/false returned
                             WHEN TYPE_NAME = 'guid'
                                 THEN 'uniqueidentifier'
-                            ELSE 'nvarchar(4000)'
+                            ELSE 'nvarchar(4000)' -- , 'uint64' is too big for bigint
                         END,
         XMLLocation = 'value',
         TypePrecidence = CASE 
                             WHEN TYPE_NAME IN ('int8', 'int16', 'int32', 'uint8', 
-                                    'uint16', 'uint32', 'float32') 
+                                    'uint16', 'float32') 
                                 THEN 1
-                            WHEN TYPE_NAME IN ('int64', 'uint64', 'float64')
+                            WHEN TYPE_NAME IN ('int64', 'uint64', 'float64', 'uint32')
                                 THEN 2
                             WHEN TYPE_NAME = 'boolean'
                                 THEN 3 --true/false returned
@@ -118,13 +118,20 @@ XESession_OutputsFromDMVs  AS (
 	
 	INSERT @cols (colSQL,colname,DataType)
 	SELECT 
-		CHAR(13) +  CHAR(10)  +'		,CASE WHEN event_name in ('+column_events+') THEN event_data.value(' + QUOTENAME(XQuery,'''') + ', ' + QUOTENAME(DataType,'''') + ') ELSE NULL END AS ' + QUOTENAME(ColumnName)  AS colSQL
+		QUOTENAME(ColumnName) + ' = CASE WHEN event_name in ('+column_events+') THEN event_data.value(' + QUOTENAME(XQuery,'''') + ', ' + QUOTENAME(DataType,'''') + ') ELSE NULL END '  AS colSQL
 		,ColumnName
 		,DataType
 	FROM XQuerycte
 	WHERE EventSessionName = @SessionName
 	ORDER BY EventSessionName, ColumnName
 
+
+    DECLARE @fields AS VARCHAR(MAX);
+    SELECT @fields = STUFF(fieldCase, 1, 1, '')
+    FROM (
+        SELECT ',' + colSQL  +  CHAR(10) + '                ' AS [text()] 
+        FROM @cols FOR XML PATH('')
+    ) a(fieldCase)
 
 	IF EXISTS(
 		SELECT 1
@@ -138,32 +145,49 @@ XESession_OutputsFromDMVs  AS (
 			  
 		INSERT @tmp (cmd)
 		SELECT 
-		'SELECT event_name
-			,event_data.value(''(event/@timestamp)[1]'', ''datetime'') AS [timestamp]'
+		'
+        DECLARE @xml xml =
+        CONVERT
+        (
+            xml,
+            (
+            SELECT TOP (1)
+                dxst.target_data
+            FROM sys.dm_xe_sessions AS dxs 
+            JOIN sys.dm_xe_session_targets AS dxst ON
+                dxst.event_session_address = dxs.[address]
+            WHERE 
+                dxs.name = '''+@SessionName+'''
+                AND dxst.target_name = N''ring_buffer''
+            )
+        );
+        
+        SELECT event_name
+		,event_data.value(''(event/@timestamp)[1]'', ''datetime'') AS [timestamp],
+        fields.*'
 
-		INSERT @tmp (cmd)
-		SELECT colSQL FROM @cols
-
+		
 		INSERT @tmp (cmd)
 		SELECT '
 		FROM (
 				SELECT td.query(''.'') AS event_data
 				,td.value(''@name'', ''sysname'') as event_name
 				,td.value(''@timestamp'', ''datetime'') as timestamp
-				FROM 
-				(
-					SELECT CAST(target_data AS XML) as target_data
-					FROM sys.dm_xe_sessions AS s    
-					JOIN sys.dm_xe_session_targets AS t
-						ON s.address = t.event_session_address
-					WHERE s.name = '+ QUOTENAME(@SessionName,'''') +'
-						AND t.target_name = ''ring_buffer''
-				) AS sub
-				CROSS APPLY target_data.nodes(''RingBufferTarget[1]/event'') AS q(td)
+				FROM @xml.nodes(''RingBufferTarget[1]/event'') AS q(td)
 			) a
-		'
-	
+            CROSS APPLY (
+            SELECT
+		         '
+    	INSERT @tmp (cmd)
+		SELECT @fields
+
+        INSERT @tmp
+                ( cmd )
+        VALUES  ( N') fields')
+                  
+
 		SELECT @SQL = ''
+        --SELECT * FROM @tmp
 		SELECT @SQL += cmd FROM @tmp
 	
 		select @SQL

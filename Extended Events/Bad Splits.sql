@@ -5,9 +5,13 @@ SET NOEXEC ON
             WHERE Operation = 11  -- LOP_DELETE_SPLIT
                   --AND session_id = 60 -- alter for each try
         )
-        ADD TARGET package0.ring_buffer (SET MAX_MEMORY = 128000)
+        ADD TARGET package0.ring_buffer (SET MAX_MEMORY = 128000, max_events_limit=(0))
 	    WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 10 SECONDS,
                   MEMORY_PARTITION_MODE=NONE, TRACK_CAUSALITY=OFF, STARTUP_STATE=OFF);
+     --ADD TARGET package0.histogram(SET filtering_event_name = N'sqlserver.transaction_log', source = N'context', source_type = (0))
+     --   WITH (MAX_MEMORY = 4096 KB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,
+     --   MAX_DISPATCH_LATENCY = 5 SECONDS, MAX_EVENT_SIZE = 0 KB, MEMORY_PARTITION_MODE = NONE,
+     --   TRACK_CAUSALITY = OFF, STARTUP_STATE = OFF);
     GO
  
     -- START EVENT
@@ -50,12 +54,12 @@ SET NOEXEC OFF;
                     theNodes.event_data.value('(data[@name="database_id"]/value)[1]','int') AS database_id,
                     theNodes.event_data.value('(data[@name="alloc_unit_id"]/value)[1]','varchar(30)') AS alloc_unit_id,
                     theNodes.event_data.value('(data[@name="context"]/text)[1]','varchar(30)') AS context
-                    --theNodes.event_data.value('(data[@name="operation"]/text)[1]','varchar(60)') AS operation
+                    ,theNodes.event_data.value('(data[@name="operation"]/text)[1]','varchar(60)') AS operation
                 FROM
                 (SELECT @xml event_data) theData
                 CROSS APPLY theData.event_data.nodes('//event') theNodes(event_data) 
             )
-    SELECT name,context, COUNT(*) AS totalSplits
+    SELECT name,context, COUNT(*) AS totalSplits, operation
     FROM qry
     LEFT JOIN sys.allocation_units au
         ON qry.alloc_unit_id=au.allocation_unit_id
@@ -67,5 +71,20 @@ SET NOEXEC OFF;
     WHERE 
         database_id = DB_ID() -- We must be located in the same database as the split occured. 
                               -- This is because the sys.allocation_units and sys.partition dmvs are database specific.
-    GROUP BY name,context
+    GROUP BY name,context,operation
     ORDER BY name
+
+    -- query for histogram target
+   SELECT 
+        xed.slot_data.value('(value)[1]', 'varchar(256)') AS operationID,
+        xed.slot_data.value('(@count)[1]', 'varchar(256)') AS slotcount
+    FROM (
+        SELECT 
+            CAST(xet.target_data AS xml)  as target_data
+        FROM sys.dm_xe_session_targets AS xet  
+        JOIN sys.dm_xe_sessions AS xe  
+           ON (xe.address = xet.event_session_address)  
+        WHERE xe.name = 'BadSplits' 
+            and target_name='histogram'
+        ) as t
+    CROSS APPLY t.target_data.nodes('//HistogramTarget/Slot') AS xed (slot_data);

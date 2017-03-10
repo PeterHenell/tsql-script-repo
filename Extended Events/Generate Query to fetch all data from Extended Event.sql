@@ -108,7 +108,7 @@ XESession_OutputsFromDMVs  AS (
 	)
 	, XQuerycte AS (
 	SELECT
-		'(event/'+NodeType+'[@name="'+ColumnName+'"]/'+XMLLocation+')[1]' AS XQuery
+		'(event[1]/'+NodeType+'[@name="'+ColumnName+'"]/'+XMLLocation+')[1]' AS XQuery
 		,STUFF((SELECT DISTINCT ',' + QUOTENAME(EventName,'''') FROM cte c1 WHERE c1.ColumnName = c.ColumnName FOR XML PATH('')),1,1,'') AS column_events
 		,*
 	FROM cte c
@@ -187,7 +187,6 @@ XESession_OutputsFromDMVs  AS (
                   
 
 		SELECT @SQL = ''
-        --SELECT * FROM @tmp
 		SELECT @SQL += cmd FROM @tmp
 	
 		select @SQL

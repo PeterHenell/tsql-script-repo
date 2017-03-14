@@ -59,9 +59,8 @@ SET NOEXEC OFF;
 				,td.value('@timestamp', 'datetime') as timestamp
 				FROM @xml.nodes('RingBufferTarget[1]/event') AS q(td)
 			) a
-            CROSS APPLY (
+        CROSS APPLY (
             SELECT
-		         --[callstack] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="callstack"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
                  [database_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="database_id"]/value)[1]', 'bigint') ELSE NULL END 
                 ,[database_name] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="database_name"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
                 ,[escalated_lock_count] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="escalated_lock_count"]/value)[1]', 'bigint') ELSE NULL END 
@@ -70,24 +69,23 @@ SET NOEXEC OFF;
                 ,[hobt_lock_count] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="hobt_lock_count"]/value)[1]', 'bigint') ELSE NULL END 
                 ,[lockspace_nest_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="lockspace_nest_id"]/value)[1]', 'bigint') ELSE NULL END 
                 ,[lockspace_sub_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="lockspace_sub_id"]/value)[1]', 'bigint') ELSE NULL END 
-                --,[lockspace_workspace_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="lockspace_workspace_id"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
                 ,[mode] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="mode"]/text)[1]', 'nvarchar(10)') ELSE NULL END 
                 ,[object_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="object_id"]/value)[1]', 'int') ELSE NULL END 
                 ,[owner_type] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="owner_type"]/text)[1]', 'nvarchar(40)') ELSE NULL END 
-                ,[plan_handle] = CAST(
-                        STUFF(event_data.value('(event[1]/action[@name="plan_handle"]/value)[1]', 'varchar(max)'),
-                        1, 0, N'0x') AS XML)
-                ,[query_hash] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="query_hash"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
-                ,[request_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="request_id"]/value)[1]', 'bigint') ELSE NULL END 
-                ,[resource_0] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_0"]/value)[1]', 'bigint') ELSE NULL END 
-                ,[resource_1] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_1"]/value)[1]', 'bigint') ELSE NULL END 
-                ,[resource_2] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_2"]/value)[1]', 'bigint') ELSE NULL END 
+                --,[plan_handle] = CAST(
+                --        STUFF(event_data.value('(event[1]/action[@name="plan_handle"]/value)[1]', 'varchar(max)'),
+                --        1, 0, N'0x') AS XML)
+                --,[query_hash] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="query_hash"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
+                --,[request_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="request_id"]/value)[1]', 'bigint') ELSE NULL END 
+                --,[resource_0] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_0"]/value)[1]', 'bigint') ELSE NULL END 
+                --,[resource_1] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_1"]/value)[1]', 'bigint') ELSE NULL END 
+                --,[resource_2] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_2"]/value)[1]', 'bigint') ELSE NULL END 
                 ,[resource_type] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="resource_type"]/text)[1]', 'nvarchar(30)') ELSE NULL END 
                 ,[session_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="session_id"]/value)[1]', 'int') ELSE NULL END 
                 ,[sql_text] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="sql_text"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
                 ,[statement] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="statement"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
                 ,[transaction_id] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/data[@name="transaction_id"]/value)[1]', 'bigint') ELSE NULL END 
-                ,[tsql_stack] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="tsql_stack"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
-                ) fields
-		    CROSS APPLY (SELECT DB_NAME(fields.database_id)) db(name)
-            CROSS APPLY (SELECT OBJECT_NAME(fields.object_id, fields.database_id)) o(name)
+                --,[tsql_stack] = CASE WHEN event_name in ('lock_escalation') THEN event_data.value('(event[1]/action[@name="tsql_stack"]/value)[1]', 'nvarchar(4000)') ELSE NULL END 
+           ) fields
+		CROSS APPLY (SELECT DB_NAME(fields.database_id)) db(name)
+        CROSS APPLY (SELECT OBJECT_NAME(fields.object_id, fields.database_id)) o(name)

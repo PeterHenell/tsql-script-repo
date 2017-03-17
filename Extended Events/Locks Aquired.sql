@@ -45,10 +45,10 @@ SET NOEXEC OFF;
                 AND dxst.target_name = N'ring_buffer'
             )
         );
-       IF OBJECT_ID('tempdb..#temp') IS NOT NULL DROP TABLE #temp;
-       WITH a AS ( SELECT   t.c.value('@name', 'nvarchar(50)') AS event_name ,
+        WITH a AS ( SELECT  t.c.value('@name', 'nvarchar(50)') AS event_name ,
+                            t.c.value('(action[@name="event_sequence"]/value)[1]','varchar(200)') AS event_sequence,
                             t.c.value('@timestamp', 'datetime2') AS event_time ,
-                            st.*,
+                            st.statement_text,
                             t.c.value('(data[@name="associated_object_id"]/value)[1]','numeric(20)') AS associated_object_id ,
                             t.c.value('(data[@name="resource_0"]/value)[1]','bigint') AS resource_0 ,
                             t.c.value('(data[@name="resource_1"]/value)[1]','bigint') AS resource_1 ,
@@ -58,8 +58,8 @@ SET NOEXEC OFF;
                             t.c.value('(data[@name="database_id"]/value)[1]','int') AS database_id ,
                             t.c.value('(data[@name="object_id"]/value)[1]','int') AS object_id ,
                             t.c.value('(data[@name="owner_type"]/text)[1]','varchar(50)') AS owner_type ,
-                            t.c.value('(action[@name="attach_activity_id"]/value)[1]','varchar(200)') AS attach_activity_id,
-                            t.c.value('(action[@name="event_sequence"]/value)[1]','varchar(200)') AS event_sequence
+                            t.c.value('(action[@name="attach_activity_id"]/value)[1]','varchar(200)') AS attach_activity_id
+
                    FROM     ( SELECT    @xml AS event_xml) target_read_file
                             CROSS APPLY event_xml.nodes('//event') AS t ( c )
                             CROSS APPLY (SELECT CAST(t.c.query('(action[@name="tsql_stack"]/value)[1][last()]/*') AS xml)) AS sql_stack(value)
@@ -84,10 +84,6 @@ SET NOEXEC OFF;
                             AND t.c.value('(data[@name="database_id"]/value)[1]','int') <> 2
                  )
         SELECT  a.*,
-                event_time ,
-                OBJECT_NAME(ISNULL(p.object_id, a.object_id), a.database_id) object_name ,
-                resource_type ,
-                mode ,
-                a.event_sequence
+                OBJECT_NAME(ISNULL(p.object_id, a.object_id), a.database_id) object_name
         FROM    a
                 LEFT JOIN sys.partitions p ON a.associated_object_id = p.hobt_id

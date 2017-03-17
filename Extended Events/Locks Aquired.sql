@@ -11,7 +11,7 @@ SET NOEXEC ON
             sqlserver.tsql_stack,
             package0.event_sequence
             )
-        WHERE session_id = 61
+        WHERE session_id = 57
      )
     ADD TARGET package0.ring_buffer
         (SET MAX_MEMORY = 128000, MAX_EVENTS_LIMIT = 0)
@@ -48,33 +48,40 @@ SET NOEXEC OFF;
        IF OBJECT_ID('tempdb..#temp') IS NOT NULL DROP TABLE #temp;
        WITH a AS ( SELECT   t.c.value('@name', 'nvarchar(50)') AS event_name ,
                             t.c.value('@timestamp', 'datetime2') AS event_time ,
-                            t.c.value('(data[@name="associated_object_id"]/value)[1]',
-                                      'numeric(20)') AS associated_object_id ,
-                            t.c.value('(data[@name="resource_0"]/value)[1]',
-                                      'bigint') AS resource_0 ,
-                            t.c.value('(data[@name="resource_1"]/value)[1]',
-                                      'bigint') AS resource_1 ,
-                            t.c.value('(data[@name="resource_2"]/value)[1]',
-                                      'bigint') AS resource_3 ,
-                            t.c.value('(data[@name="mode"]/text)[1]',
-                                      'varchar(50)') AS mode ,
-                            t.c.value('(data[@name="resource_type"]/text)[1]',
-                                      'varchar(50)') AS resource_type ,
-                            t.c.value('(data[@name="database_id"]/value)[1]',
-                                      'int') AS database_id ,
-                            t.c.value('(data[@name="object_id"]/value)[1]',
-                                      'int') AS object_id ,
-                            t.c.value('(action[@name="attach_activity_id"]/value)[1]',
-                                      'varchar(200)') AS attach_activity_id,
-                            t.c.value('(action[@name="event_sequence"]/value)[1]',
-                                      'varchar(200)') AS event_sequence
+                            st.*,
+                            t.c.value('(data[@name="associated_object_id"]/value)[1]','numeric(20)') AS associated_object_id ,
+                            t.c.value('(data[@name="resource_0"]/value)[1]','bigint') AS resource_0 ,
+                            t.c.value('(data[@name="resource_1"]/value)[1]','bigint') AS resource_1 ,
+                            t.c.value('(data[@name="resource_2"]/value)[1]','bigint') AS resource_3 ,
+                            t.c.value('(data[@name="mode"]/text)[1]','varchar(50)') AS mode ,
+                            t.c.value('(data[@name="resource_type"]/text)[1]','varchar(50)') AS resource_type ,
+                            t.c.value('(data[@name="database_id"]/value)[1]','int') AS database_id ,
+                            t.c.value('(data[@name="object_id"]/value)[1]','int') AS object_id ,
+                            t.c.value('(data[@name="owner_type"]/text)[1]','varchar(50)') AS owner_type ,
+                            t.c.value('(action[@name="attach_activity_id"]/value)[1]','varchar(200)') AS attach_activity_id,
+                            t.c.value('(action[@name="event_sequence"]/value)[1]','varchar(200)') AS event_sequence
                    FROM     ( SELECT    @xml AS event_xml) target_read_file
                             CROSS APPLY event_xml.nodes('//event') AS t ( c )
+                            CROSS APPLY (SELECT CAST(t.c.query('(action[@name="tsql_stack"]/value)[1][last()]/*') AS xml)) AS sql_stack(value)
+                            CROSS APPLY (SELECT 
+                                            frame_xml.value('(./@level)[1]', 'int') as [frame_level],
+                                            frame_xml.value('(./@handle[1])', 'varchar(MAX)') as [sql_handle],
+                                            frame_xml.value('(./@offsetStart[1])', 'int') as [offset_start],
+                                            frame_xml.value('(./@offsetEnd[1])', 'int') as [offset_end]
+                                        FROM sql_stack.value.nodes('//frame') n(frame_xml)
+                                        ) sql_frames
+                            OUTER APPLY 
+                                (SELECT 
+                                    SUBSTRING(st.text, ([sql_frames].[offset_start]/2)+1, 
+                                        ((CASE [sql_frames].[offset_end]
+                                          WHEN -1 THEN DATALENGTH(st.text)
+                                         ELSE [sql_frames].[offset_end]
+                                         END - [sql_frames].[offset_start])/2) + 1) AS statement_text
+                                    FROM sys.dm_exec_sql_text(CONVERT(VARBINARY(max), sql_frames.sql_handle,1)) AS st
+                                    ) AS st
                    WHERE    t.c.value('@name', 'nvarchar(50)') = 'lock_acquired'
-                            AND t.c.value('(data[@name="associated_object_id"]/value)[1]',
-                                          'numeric(20)') > 0
-                            AND t.c.value('(data[@name="database_id"]/value)[1]',
-                                          'int') <> 2
+                            AND t.c.value('(data[@name="associated_object_id"]/value)[1]','numeric(20)') > 0
+                            AND t.c.value('(data[@name="database_id"]/value)[1]','int') <> 2
                  )
         SELECT  a.*,
                 event_time ,

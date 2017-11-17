@@ -3,7 +3,7 @@ SET NOEXEC Off
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-DECLARE @IndexName AS NVARCHAR(128) = 'PK_DimContractODVInfo';
+DECLARE @IndexName AS NVARCHAR(128) = 'PK_Norm_n_BudgetAllocationPrinciple';
 
 -- Make sure the name passed is appropriately quoted 
 IF (LEFT(@IndexName, 1) <> '[' AND RIGHT(@IndexName, 1) <> ']') SET @IndexName = QUOTENAME(@IndexName); 
@@ -71,7 +71,7 @@ SELECT
             ').value('.', 'varchar(max)') AS [compiled_param_vals] ,
 	usecounts as [Use Count], 
 	plan_handle, 
-	query_plan,
+	qplan = case when (ROW_NUMBER() over(partition by plan_handle order by (select null))) = 1 then query_plan else null end,
     qstat.*
 FROM handles
 CROSS APPLY query_plan.nodes('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple') AS batch(stmt) 

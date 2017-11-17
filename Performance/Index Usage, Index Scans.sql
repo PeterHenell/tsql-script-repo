@@ -8,6 +8,8 @@ ORDER BY user_scans DESC
 
 --SELECT * FROM sys.dm_db_index_physical_stats(NULL, NULL, NULL, NULL, null)
 
+--drop table #tmp
+
 SELECT
     SCHEMA_NAME(o.schema_id) AS SchemaName
    ,OBJECT_NAME(o.object_id) AS TableName

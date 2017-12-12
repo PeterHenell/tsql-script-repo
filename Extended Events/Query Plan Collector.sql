@@ -13,12 +13,12 @@ SET NOEXEC ON
 			        sqlserver.query_hash,
 			        sqlserver.session_id,
                     sqlserver.request_id ) 
-     --   WHERE duration > 1000 AND session_id = 65
+        WHERE username = 'SPOTIFY\sqlagentsvcdev' AND duration > 1000 --AND session_id = 65
     )
 
 	   
     ADD TARGET package0.ring_buffer
-        (SET MAX_MEMORY = 128000)
+        (SET MAX_MEMORY = 128000, MAX_EVENTS_LIMIT = 0)
 	    WITH (EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS, MAX_DISPATCH_LATENCY = 10 SECONDS,
               MEMORY_PARTITION_MODE=NONE, TRACK_CAUSALITY=OFF, STARTUP_STATE=OFF);
     GO
@@ -44,7 +44,7 @@ SET NOEXEC OFF;
     WITH XMLNAMESPACES('http://schemas.microsoft.com/sqlserver/2004/07/showplan' AS s) 
 	SELECT
 		n.query('event[1]/action[@name="sql_text"][1]').value('action[1]/value[1]', 'NVARCHAR(MAX)') AS  [sql_text],
-        n.query('event[1]/data[@name="duration"][1]').value('data[1]/value[1]', 'BIGINT') AS  duration,
+        n.query('event[1]/data[@name="duration"][1]').value('data[1]/value[1]', 'BIGINT') / 1000 AS  duration_ms,
         n.query('event[1]/data[@name="estimated_rows"][1]').value('data[1]/value[1]', 'BIGINT') AS  est_rows,
         n.query('event[1]/data[@name="estimated_cost"][1]').value('data[1]/value[1]', 'BIGINT') AS  est_cost,
         n.query('event[1]/data[@name="object_name"][1]').value('data[1]/value[1]', 'VARCHAR(200)') AS  object_name,

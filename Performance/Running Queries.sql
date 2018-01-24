@@ -1,8 +1,10 @@
+SET TRAN ISOLATION LEVEL READ UNCOMMITTED;
+
 SELECT  query_text.[statementText] ,
         session_id ,
         --request_id ,
         start_time ,
-        status ,
+        req.status ,
         wait_type ,
         wait_time ,
         wait_resource ,
@@ -35,4 +37,7 @@ OUTER APPLY sys.dm_exec_text_query_plan(req.plan_handle, statement_start_offset,
 OUTER APPLY sys.dm_exec_query_plan(req.plan_handle) qplan
 WHERE   session_id > 50
         AND session_id <> @@spid
-        AND [fullText] IS NOT NULL;
+        AND [fullText] IS NOT NULL
+        --AND req.session_id = 67;
+
+--SELECT * FROM sys.dm_exec_sessions

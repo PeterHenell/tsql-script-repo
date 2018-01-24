@@ -62,11 +62,37 @@ function Export-TableToCsv (
 function get_connection()
 {
     $builder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
-    $builder["Data Source"] = "localhost"
-    $builder["Initial Catalog"] = "master"
+    $builder["Data Source"] = "dw-testb.spotify.net"
+    $builder["Initial Catalog"] = "DWH_1_Raw"
     $builder["Integrated Security"] = $true
     $builder.ConnectionString
 }
 $con = get_connection
 
-(Export-TableToCsv "$con" "C:\temp\Output" "someTable" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_JeType" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Transactions" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_CurrencyRates" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_CurrencyTemp" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_ConsolidatedExchangeRates" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_ReportDefinitionDetailTotal" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Counterpart" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_ReportDefinition" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Campaign" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_TransactionLinks" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_TransactionLines" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_ReportDefinitionDetailLeaf" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_GLAccount" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_TransactionIds" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Currency" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_LegalEntity" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_CostCenter" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Vendor" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Customer" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Project" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_PaymentMethod" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Partner" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Product" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_Market" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_AccountingPeriods" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_TransactionLineIds" "*")
+(Export-TableToCsv "$con" "C:\temp\Output" "NetSuite_RawTyped.r_JournalClassification" "*")

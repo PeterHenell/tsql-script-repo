@@ -13,14 +13,14 @@ ORDER BY   NumberOfRows DESC,SizeinKB DESC,TableName
 
 
 SELECT  
-    TableName = t.name,
     SchemaName = SCHEMA_NAME(t.schema_id),
+    TableName = t.name,
     NumberOfRows = i.rows
 FROM       sys.tables t
 INNER JOIN sys.sysindexes i
     ON t.object_id = i.id
 WHERE indid IN (0,1)
-    --AND SCHEMA_NAME(t.schema_id) = ''
+    AND SCHEMA_NAME(t.schema_id) = 'NetSuite_RawTyped'
 ORDER BY
     SCHEMA_NAME(t.schema_id), 
     t.name

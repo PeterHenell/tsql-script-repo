@@ -1,8 +1,8 @@
 SET NOCOUNT ON;
 
 DECLARE @sql NVARCHAR(MAX);
-DECLARE @targetTableName NVARCHAR(200) = 'Netsuite_Staging.st_TransactionLines';
-SET @sql = N'SELECT * FROM sys.dm_exec_sessions;';
+DECLARE @targetTableName NVARCHAR(200) = '#temp';
+SET @sql = N'msdb.dbo.sp_help_job @execution_status = 1';
 
 
 WITH cols(list) AS (

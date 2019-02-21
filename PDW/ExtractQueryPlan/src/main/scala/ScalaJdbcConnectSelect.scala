@@ -52,9 +52,9 @@ object ScalaJdbcConnectSelect {
 
   def main(args: Array[String]) {
     val driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-    val url = "jdbc:sqlserver://edw-poc-srv.database.windows.net:1433;database=EDW_POC_DB;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30; "
-    val username = "PETEHENE"
-    val password = "hGFdsa19?"
+    val url = "jdbc:sqlserver://.database.windows.net:1433;database=;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30; "
+    val username = ""
+    val password = ""
 
     // there's probably a better way to do this
     var connection:Connection = null

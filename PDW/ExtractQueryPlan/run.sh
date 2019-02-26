@@ -1,1 +1,1 @@
-java -jar target/scala-2.12/ExtractQueryPlan-assembly-1.0.jar
+java -jar target/scala-2.12/ExtractQueryPlan-assembly-1.0.jar PETEHENE pp jdbc:sqlserver://edw-poc-srv.database.windows.net:1433;database=EDW_POC_DB_3RD;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;

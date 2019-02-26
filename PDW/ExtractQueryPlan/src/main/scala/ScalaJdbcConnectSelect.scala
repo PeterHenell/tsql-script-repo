@@ -52,28 +52,19 @@ object ScalaJdbcConnectSelect {
 
   def main(args: Array[String]) {
     val driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-    val url = "jdbc:sqlserver://.database.windows.net:1433;database=;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30; "
-    val username = ""
-    val password = ""
+    val url = "jdbc:sqlserver://edw-poc-srv.database.windows.net:1433;database=EDW_POC_DB;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30; "
 
-    // there's probably a better way to do this
+    val username = args(0)
+    val password = args(1)
+
     var connection:Connection = null
 
-//    println("Enter dist id")
-//    var dist = scala.io.StdIn.readLine()
-//    println("Enter spid")
-//    var spid = scala.io.StdIn.readLine()
-
-//    println(s"Dist: $dist, Spid: $spid")
-
     try {
-      // make the connection
       Class.forName(driver)
       connection = DriverManager.getConnection(url, username, password)
 
       var spid = getCurrentSpid(connection)
 
-      // create the statement, and run the select query
       getExecutionPlan(connection,"1", spid)
 
     } catch {
